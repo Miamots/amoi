@@ -93,6 +93,20 @@ svg.i{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2.2;stro
 .foot>div{max-width:600px;margin:0 auto;display:flex;gap:10px}
 .foot .btn{flex:1;font-size:20px;padding:16px}
 .foot .btn.go{font-size:26px;letter-spacing:1px;padding:18px}
+.fcol{flex:1;display:flex;flex-direction:column;gap:8px}
+.frow{display:flex;gap:10px}
+.foot .btn.prog{flex:0 0 auto;font-size:17px;padding:16px 18px}
+.psum{align-self:center;border:0;background:rgba(255,255,255,.85);border-radius:999px;padding:6px 14px;display:flex;gap:14px;align-items:center;font-weight:700;font-size:15px;color:var(--ink);box-shadow:var(--shadow)}
+.psum span{display:inline-flex;align-items:center;gap:4px}
+.psum svg.i{width:18px;height:18px;color:var(--orange)}
+.psum span.red svg.i{color:var(--red)}
+.psum img{width:22px;height:22px;border-radius:6px;object-fit:cover}
+.run-foot .ibtn.plus{background:var(--yellow);color:#fff}
+.turn{cursor:pointer}
+.who .kid img{width:76px;height:76px}
+.kids.who{grid-template-columns:repeat(auto-fill,minmax(92px,1fr))}
+.badge svg.i{width:16px;height:16px;stroke-width:3}
+.badge.add{background:#c9b8a5}
 .card.prog{margin-top:16px;display:flex;align-items:center;gap:12px;padding:14px 16px}
 .card.prog small{display:block;color:var(--muted);font-weight:700;font-size:14px}
 .card.prog b{font-size:18px;font-weight:800}
@@ -256,6 +270,8 @@ const IC={
   restart:'<path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v5h5"/>',
   next:'<path d="M5 12h14M13 6l6 6-6 6"/>',
   prev:'<path d="M19 12H5M11 6l-6 6 6 6"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 12V3a9 9 0 0 1 9 9z" fill="currentColor"/>',
+  person:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/>',
   sliders:'<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>',
   bell:'<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/>',
   belloff:'<path d="M6 16V11a6 6 0 0 1 9-5.2M18 11v5l2 2H8"/><path d="M10 21h4M3 3l18 18"/>',
@@ -478,6 +494,10 @@ function render(){
   if(sq&&tp)sq.addEventListener('scroll',()=>{if(sq.scrollTop>24)tp.classList.add('compact');else if(sq.scrollTop<4)tp.classList.remove('compact')},{passive:true});
 }
 
+function progIcons(P,act){
+  const t=P.timer==='sablier'?`<span>${ic('hourglass')}${durLabel(P.dur)}</span>`:P.timer==='timetimer'?`<span class="red">${ic('clock')}${durLabel(P.dur)}</span>`:`<span>${ic('belloff')}aucun</span>`;
+  return `${t}<span>${ic('person')}${P.per}</span>${act?`<span>${act.photo?`<img src="${act.photo}" alt="">`:''}${esc(act.name)}</span>`:''}`;
+}
 /* ---------- Grille de sélection (une couleur par tour) ---------- */
 function kidGrid(g,st){const per=Math.max(1,st.per||1);
   return `<div class="kids">${g.kids.map(k=>{const i=st.order.indexOf(k.id);const c=i>=0?TC[Math.floor(i/per)%TC.length]:'';
@@ -510,14 +530,15 @@ group(){
 pick(){
   const g=findGroup(V.id);if(!g)return SCREENS.home();const st=V.st;st.order=st.order.filter(id=>g.kids.some(k=>k.id===id));const n=st.order.length;
   const P=g.preset;st.per=P.per;const act=P.act?findAct(P.act):null;
-  const sum=[TLAB[P.timer]+(P.timer!=='aucun'?' · '+durLabel(P.dur):''),`${P.per} enfant${P.per>1?'s':''} à la fois`,act?esc(act.name):''].filter(Boolean).join(' · ');
   return `<div class="top"><button class="ibtn" data-a="back" aria-label="Retour">${ic('back')}</button><h1>${esc(g.name)}</h1><button class="ibtn" data-a="editGroup" aria-label="Modifier le groupe">${ic('gear')}</button></div>
   <p class="hint" style="margin-top:6px">Touche les enfants dans l'ordre du tour, puis GO!</p>
   ${kidGrid(g,st)}
   <div class="row" style="margin-top:12px"><button class="btn small" data-a="pickAll">${ic('users')} Tout le groupe</button><button class="btn small" data-a="shuffle" ${n>1?'':'disabled'}>${ic('shuffle')} Mélanger</button><button class="btn small" data-a="pickNone" ${n?'':'disabled'}>Effacer</button></div>
-  <div class="card prog"><div><small>Tour de rôle programmé</small><b>${sum}</b></div></div>
-  <div style="text-align:center"><button class="btn soft" data-a="setup" style="margin-top:10px">${ic('sliders')} Programmer un tour de rôle</button></div>
-  <div class="foot"><div><button class="btn green go" data-a="startRun" ${n?'':'disabled'}>GO! ${ic('next')}</button></div></div>`;
+  <div style="height:80px"></div>
+  <div class="foot"><div class="fcol">
+    <button class="psum" data-a="setup" aria-label="Programmation">${progIcons(P,act)}</button>
+    <div class="frow"><button class="btn blue prog" data-a="setup">${ic('sliders')} Programmer</button><button class="btn green go" data-a="startRun" ${n?'':'disabled'}>GO! ${ic('next')}</button></div>
+  </div></div>`;
 },
 setup(){
   const g=findGroup(V.id);if(!g)return SCREENS.home();const st=V.st;
@@ -555,15 +576,16 @@ run(){
   let seq='';
   for(let i=R.turn;i<R.turn+7;i++){
     const ks=turnOf(R,i).map(kid);const now=i===R.turn;const sz=ks.length>4?'lots':ks.length>2?'many':ks.length>1?'two':'one';
-    seq+=`<div class="turn ${now?'now':''} ${sz}">${now?'':`<span class="n">${i-R.turn}</span>`}<div class="wrap">${now?'<span class="nowlbl">C\'est ton tour!</span>':''}<div class="ppl">${ks.map(k=>`<div class="p"><img src="${k.photo||AVATAR}" alt="">${kname(k)}</div>`).join('')}</div></div></div>`;
+    seq+=`<div class="turn ${now?'now':''} ${sz}" data-a="who">${now?'':`<span class="n">${i-R.turn}</span>`}<div class="wrap">${now?'<span class="nowlbl">C\'est ton tour!</span>':''}<div class="ppl">${ks.map(k=>`<div class="p"><img src="${k.photo||AVATAR}" alt="">${kname(k)}</div>`).join('')}</div></div></div>`;
   }
   const topArea=(act||hasT)?`<div class="run-top"><div class="tarea">
       ${act?`<div class="tcol">${act.photo?`<img class="actimg" style="--ah:${hasT?'min(24vw,120px)':'min(40vw,190px)'}" src="${act.photo}" alt="">`:''}<div class="actname ${act.photo?'':'big'}">${esc(act.name)}</div></div>`:''}
       ${hasT?timerBlock(R.timer,th):''}</div></div>`:'';
   return `<div class="top"><button class="ibtn" data-a="back" aria-label="Quitter">${ic('back')}</button><h1>${esc(g.name)}</h1>
-    ${hasT?`<button class="ibtn ${S.settings.sound?'':'off'}" data-a="sound" aria-label="Son">${ic(S.settings.sound?'bell':'belloff')}</button>`:''}</div>
+    ${hasT?`<button class="ibtn ${S.settings.sound?'':'off'}" data-a="sound" aria-label="Son">${ic(S.settings.sound?'bell':'belloff')}</button>`:''}
+    <button class="ibtn" data-a="runEdit" aria-label="Modifier le tour">${ic('sliders')}</button></div>
   ${topArea}<div class="seq">${seq}</div>
-  <div class="run-foot"><button class="ibtn" data-a="prevTurn" aria-label="Tour précédent" ${R.turn?'':'disabled style="opacity:.4"'}>${ic('prev')}</button><button class="btn green next" data-a="nextTurn">Suivant ${ic('next')}</button></div>`;
+  <div class="run-foot"><button class="ibtn" data-a="prevTurn" aria-label="Tour précédent" ${R.turn?'':'disabled style="opacity:.4"'}>${ic('prev')}</button><button class="ibtn plus" data-a="who" aria-label="Ajouter ou retirer un enfant">${ic('plus')}</button><button class="btn green next" data-a="nextTurn">Suivant ${ic('next')}</button></div>`;
 },
 solo(){
   const s=S.settings;
@@ -601,6 +623,25 @@ settings(){
 /* ---------- Séquence ---------- */
 function turnOf(r,i){const n=r.order.length;if(!n)return[];const k=Math.min(r.per||1,n);const out=[];for(let j=0;j<k;j++)out.push(r.order[(i*k+j)%n]);return out}
 
+/* ---------- Modifier en plein tour ---------- */
+function rebase(R){const n=R.order.length;if(!n)return;const st=(R.turn*R.per)%n;R.order=[...R.order.slice(st),...R.order.slice(0,st)];R.turn=0}
+function whoModal(){
+  const g=findGroup(V.id),R=V.run;
+  openModal(`<h2>Qui joue?</h2><p>Touche une photo pour ajouter ou retirer un enfant du tour.</p>
+    <div class="kids who">${g.kids.map(k=>{const on=R.order.includes(k.id);return `<button class="kid ${on?'sel':'dim'}" data-a="whoToggle" data-id="${k.id}">${on?`<span class="badge">${ic('check')}</span>`:`<span class="badge add">${ic('plus')}</span>`}<img src="${k.photo||AVATAR}" alt="">${k.name?`<b>${esc(k.name)}</b>`:''}</button>`}).join('')}</div>
+    <div class="mact" style="margin-top:14px"><button class="btn green" data-a="mClose">OK</button></div>`);
+}
+function runEditModal(){
+  const R=V.run,maxP=Math.max(S.settings.maxPer||3,R.per);const opts=[];for(let k=1;k<=maxP;k++)opts.push(k);
+  openModal(`<h2>Modifier le tour</h2>
+    <p style="margin-bottom:8px">Enfants à la fois</p><div class="${opts.length>3?'durs':'seg'}">${opts.map(k=>`<button class="${R.per===k?'on':''}" data-a="rPer" data-v="${k}">${k}</button>`).join('')}</div>
+    <p style="margin:16px 0 8px">Minuteur</p><div class="seg">${[['sablier','Sablier'],['timetimer','Time Timer'],['aucun','Aucun']].map(([v,l])=>`<button class="${R.timer===v?'on':''}" data-a="rType" data-v="${v}">${l}</button>`).join('')}</div>
+    ${R.timer!=='aucun'?`<p style="margin:16px 0 8px">Durée</p>${durPicker(R.dur,'rDur')}`:''}
+    <div class="mact" style="margin-top:18px"><button class="btn green" data-a="mClose">OK</button></div>`);
+}
+function applyRun(restartTimer){const g=findGroup(V.id),R=V.run;g.preset={...g.preset,per:R.per,timer:R.timer,dur:R.dur};save();
+  if(restartTimer){T.reset(R.dur);if(R.timer!=='aucun')T.play()}history.replaceState(V,'');render()}
+
 /* ---------- Fenêtres ---------- */
 let MCTX={};
 function openModal(html,ctx={}){MCTX=ctx;$('#mbox').innerHTML=html;$('#modal').classList.add('show')}
@@ -635,6 +676,14 @@ const A={
   newGroup:()=>promptName('Nouveau groupe','',name=>{const g={id:uid(),name,color:COLORS[S.groups.length%COLORS.length],kids:[],preset:DEF_PRESET()};S.groups.push(g);save();go('group',{id:g.id})}),
   openGroup:el=>{const g=findGroup(el.dataset.id);if(!g.kids.length){go('group',{id:g.id});return}go('pick',{id:g.id,st:{order:[],...g.preset}})},
   editGroup:()=>go('group',{id:V.id}),
+  who:()=>whoModal(),
+  whoToggle:el=>{const R=V.run,id=el.dataset.id;rebase(R);const i=R.order.indexOf(id);
+    if(i>=0){if(R.order.length<=1){toast('Il faut au moins un enfant.');return}R.order.splice(i,1)}else R.order.push(id);
+    history.replaceState(V,'');render();whoModal()},
+  runEdit:()=>runEditModal(),
+  rPer:el=>{const R=V.run;rebase(R);R.per=+el.dataset.v;applyRun(false);runEditModal()},
+  rType:el=>{V.run.timer=el.dataset.v;applyRun(true);runEditModal()},
+  rDur:el=>{const set=t=>{V.run.dur=t;applyRun(true)};if(el.dataset.v==='custom'){durModal(V.run.dur,t=>{set(t)});return}set(+el.dataset.v);runEditModal()},
   names:()=>{S.settings.showNames=!S.settings.showNames;save();rerender()},
   tAdd:()=>{T.addTime(60);refreshTT();toast('+1 minute')},
   dStep:el=>MCTX.step(el.dataset.k,+el.dataset.v),
