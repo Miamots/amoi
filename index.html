@@ -496,6 +496,7 @@ window.addEventListener('popstate',e=>{closeModal();if(V.name==='run'||V.name===
 function back(){history.length>1?history.back():go('home',{},true)}
 
 function render(){
+  if(pendingReload&&safeToReload()){location.reload();return}
   const app=$('#app');app.className='';
   const f=SCREENS[V.name]||SCREENS.home;app.innerHTML=f();
   if(V.name==='run'||V.name==='solo')app.className='fill';
@@ -627,6 +628,8 @@ settings(){
   <h2>Sauvegarde</h2><div class="card"><p>Les photos et les groupes restent seulement sur cet appareil. Exporte une sauvegarde pour les garder ou les transférer sur un autre appareil.</p>
     <div class="mact"><button class="btn green" data-a="export">${ic('down')} Exporter une sauvegarde</button>
     <label class="btn soft">${ic('up')} Importer une sauvegarde<input type="file" accept=".json,application/json" hidden data-c="import"></label></div></div>
+  <h2>Mise à jour</h2><div class="card"><p>Version ${APP_VERSION}. L'app se met à jour toute seule quand l'appareil est connecté à Internet.</p>
+    <div class="mact"><button class="btn soft" data-a="checkUpdate">${ic('restart')} Vérifier les mises à jour</button></div></div>
   <p class="hint" style="text-align:center;margin-top:22px">À moi! fonctionne aussi sans Internet.</p>`;
 }
 };
@@ -743,6 +746,7 @@ const A={
   soloDur:el=>{const set=t=>{S.settings.soloDur=t;save();T.reset(t);render()};if(el.dataset.v==='custom'){durModal(S.settings.soloDur,set);return}set(+el.dataset.v)},
   face:el=>{S.settings.ttFace=el.dataset.v;save();render()},
   export:()=>doExport(),
+  checkUpdate:()=>checkUpdate(),
   mClose:()=>closeModal(),
   mRmPhoto:el=>{MCTX.d.photo='';$('#mImg').outerHTML=`<div class="noimg" id="mImg">Pas d'image</div>`;el.remove()},
   mOk:()=>{const f=MCTX.onOk;closeModal();f&&f()},
@@ -785,12 +789,30 @@ async function doImport(file){
   }catch(e){toast("Ce fichier n'est pas une sauvegarde À moi!")}
 }
 
+/* ---------- Mises à jour automatiques ---------- */
+const APP_VERSION=7;
+let swReg=null,pendingReload=false;
+function safeToReload(){return !(V.name==='run'||V.name==='solo')&&!$('#modal').classList.contains('show')}
+function doReload(){if(safeToReload())location.reload();else pendingReload=true}
+function setupSW(){
+  if(!('serviceWorker' in navigator)||!(location.protocol==='https:'||location.hostname==='localhost'))return;
+  const hadCtrl=!!navigator.serviceWorker.controller;let reloaded=false;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!hadCtrl||reloaded)return;reloaded=true;doReload()});
+  navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>{swReg=r;r.update().catch(()=>{})}).catch(()=>{});
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&swReg)swReg.update().catch(()=>{})});
+}
+function checkUpdate(){
+  if(!swReg){toast('Version '+APP_VERSION);return}
+  toast('Recherche de mise à jour…');
+  swReg.update().then(()=>setTimeout(()=>{if(!pendingReload)toast('Tu as la dernière version ('+APP_VERSION+').')},4000)).catch(()=>toast("Pas d'Internet pour vérifier."));
+}
+
 /* ---------- Démarrage ---------- */
 (async function init(){
   try{await DB.open();S=normalize(await DB.get('state'));if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{})}
   catch(e){toast("Mode privé : les données ne seront pas gardées.")}
   history.replaceState(V,'');render();requestAnimationFrame(frame);
-  if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){navigator.serviceWorker.register('sw.js').catch(()=>{})}
+  setupSW();
 })();
 </script>
 </body>

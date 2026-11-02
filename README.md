@@ -21,7 +21,7 @@ Ouvre l'app une première fois avec Internet. Ensuite, elle fonctionne hors lign
 
 ## Mettre à jour l'app
 
-Remplace les fichiers modifiés dans GitHub. Dans `sw.js`, change aussi `a-moi-v1` pour `a-moi-v2`, puis `v3`, etc. Les appareils recevront la nouvelle version à leur prochaine connexion. Les groupes et les photos restent en place.
+Remplace tous les fichiers dans GitHub par ceux du nouveau zip. Les appareils reçoivent la nouvelle version automatiquement quand ils sont connectés à Internet (la page se recharge toute seule, sauf pendant un tour de rôle). Le numéro de version est affiché dans Réglages → Mise à jour. Les groupes et les photos restent en place.
 
 ## Bon à savoir
 

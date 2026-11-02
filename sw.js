@@ -1,5 +1,6 @@
-// À moi! : fonctionne hors ligne. Change VERSION à chaque mise à jour.
-const VERSION = 'a-moi-v6';
+// À moi! : fonctionne hors ligne et se met à jour toute seule.
+// Change VERSION à chaque mise à jour (et APP_VERSION dans index.html).
+const VERSION = 'a-moi-v7';
 const FILES = [
   './', 'index.html', 'manifest.webmanifest',
   'img/logo.webp', 'img/sablier.webp', 'img/bravo.webp', 'img/avatar.webp',
@@ -9,23 +10,32 @@ const FILES = [
   'fonts/barlow-latin-800-normal.woff2'
 ];
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
+  // cache:'reload' = toujours prendre les fichiers frais sur GitHub, jamais une vieille copie
+  e.waitUntil(caches.open(VERSION)
+    .then(c => c.addAll(FILES.map(f => new Request(f, { cache: 'reload' }))))
+    .then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== VERSION).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys()
+    .then(keys => Promise.all(keys.filter(k => k !== VERSION).map(k => caches.delete(k))))
+    .then(() => self.clients.claim()));
 });
 self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET') return;
-  e.respondWith(
-    caches.match(e.request, { ignoreSearch: true }).then(hit => {
-      const net = fetch(e.request).then(res => {
-        if (res && res.ok && new URL(e.request.url).origin === location.origin) {
-          const copy = res.clone();
-          caches.open(VERSION).then(c => c.put(e.request, copy));
-        }
+  const req = e.request;
+  if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
+  // La page elle-même : Internet d'abord (pour avoir la dernière version), sinon la copie gardée.
+  if (req.mode === 'navigate') {
+    e.respondWith(
+      fetch(req, { cache: 'no-cache' }).then(res => {
+        if (res.ok) { const copy = res.clone(); caches.open(VERSION).then(c => c.put('index.html', copy)); }
         return res;
-      }).catch(() => hit || (e.request.mode === 'navigate' ? caches.match('index.html') : undefined));
-      return hit || net;
-    })
-  );
+      }).catch(() => caches.match('index.html').then(r => r || caches.match('./')))
+    );
+    return;
+  }
+  // Images, police : la copie gardée d'abord (rapide, hors ligne).
+  e.respondWith(caches.match(req, { ignoreSearch: true }).then(hit => hit || fetch(req).then(res => {
+    if (res.ok) { const copy = res.clone(); caches.open(VERSION).then(c => c.put(req, copy)); }
+    return res;
+  })));
 });
