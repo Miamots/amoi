@@ -92,6 +92,11 @@ svg.i{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2.2;stro
 .foot{position:fixed;left:0;right:0;bottom:0;padding:12px 16px calc(env(safe-area-inset-bottom) + 12px);background:linear-gradient(to top,var(--cream) 70%,rgba(255,250,242,0));z-index:5}
 .foot>div{max-width:600px;margin:0 auto;display:flex;gap:10px}
 .foot .btn{flex:1;font-size:20px;padding:16px}
+.foot .btn.go{font-size:26px;letter-spacing:1px;padding:18px}
+.card.prog{margin-top:16px;display:flex;align-items:center;gap:12px;padding:14px 16px}
+.card.prog small{display:block;color:var(--muted);font-weight:700;font-size:14px}
+.card.prog b{font-size:18px;font-weight:800}
+.preview .pt{padding:2px;border-radius:20px;background:var(--sc)}
 .row{display:flex;gap:8px;flex-wrap:wrap}
 
 /* enfants */
@@ -102,9 +107,9 @@ svg.i{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2.2;stro
 .kid.add{background:rgba(255,255,255,.6);border:2px dashed #e2d3bf;box-shadow:none;color:var(--muted);justify-content:center;min-height:130px}
 .kid.add svg.i{width:34px;height:34px}
 .kid.txt{justify-content:center;min-height:118px}.kid.txt b{font-size:18px;white-space:normal;text-align:center}
-.kid.sel{outline:4px solid var(--green);background:#f4f9ec}
+.kid.sel{outline:5px solid var(--sc,var(--green));background:#fff}
 .kid.dim img{opacity:.55}
-.badge{position:absolute;top:6px;right:8px;min-width:28px;height:28px;border-radius:14px;background:var(--green);color:#fff;font-weight:800;display:grid;place-items:center;font-size:16px;padding:0 6px;box-shadow:0 2px 4px rgba(0,0,0,.15)}
+.badge{position:absolute;top:6px;right:8px;min-width:28px;height:28px;border-radius:14px;background:var(--sc,var(--green));color:#fff;font-weight:800;display:grid;place-items:center;font-size:16px;padding:0 6px;box-shadow:0 2px 4px rgba(0,0,0,.15)}
 
 /* choix */
 .seg{display:flex;background:#fff;border-radius:999px;padding:5px;box-shadow:var(--shadow);gap:4px}
@@ -274,13 +279,16 @@ const uid=()=>Math.random().toString(36).slice(2,9)+Date.now().toString(36).slic
 const AVATAR='img/avatar.webp';
 const COLORS=['#8db255','#f3bd45','#6db4c8','#e88a3c','#c39bd3','#e9a0a8'];
 const DURS=[60,120,180,300,600];
+const TC=['#8db255','#5aa9c0','#f0b43a','#e88a3c','#b98bd0','#e58f9a','#6c9240','#d9302c'];
+const DEF_PRESET=()=>({per:1,act:'',timer:'sablier',dur:60});
+const TLAB={sablier:'Sablier',timetimer:'Time Timer',aucun:'Aucun minuteur'};
 const fmt=s=>{s=Math.ceil(s);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
 const durLabel=d=>d%60?(d>=60?Math.floor(d/60)+' min '+(d%60)+' s':d+' s'):(d/60)+' min';
 function toast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2600)}
 
 
 /* ---------- Stockage (sur l'appareil seulement) ---------- */
-const DEFAULT_STATE=()=>({v:1,groups:[],activities:[],settings:{ttFace:'classique',sound:true,showNames:true,soloType:'sablier',soloDur:120}});
+const DEFAULT_STATE=()=>({v:1,groups:[],activities:[],settings:{ttFace:'classique',sound:true,showNames:true,maxPer:3,soloType:'sablier',soloDur:120}});
 let S=DEFAULT_STATE();
 const DB={db:null,
   open(){return new Promise((res,rej)=>{try{const r=indexedDB.open('a-moi',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>{this.db=r.result;res()};r.onerror=()=>rej(r.error)}catch(e){rej(e)}})},
@@ -292,12 +300,12 @@ function save(){clearTimeout(saveT);saveT=setTimeout(()=>{if(DB.db)DB.set('state
 function normalize(st){
   const d=DEFAULT_STATE();
   st=Object.assign(d,st||{});st.settings=Object.assign(DEFAULT_STATE().settings,st.settings||{});
-  st.groups=(st.groups||[]).map(g=>({id:g.id||uid(),name:g.name||'Groupe',color:g.color||COLORS[0],kids:(g.kids||[]).map(k=>({id:k.id||uid(),name:k.name||'',photo:k.photo||''})),last:g.last||null}));
+  st.groups=(st.groups||[]).map(g=>({id:g.id||uid(),name:g.name||'Groupe',color:g.color||COLORS[0],preset:Object.assign({per:1,act:'',timer:'sablier',dur:60},g.preset||{}),kids:(g.kids||[]).map(k=>({id:k.id||uid(),name:k.name||'',photo:k.photo||''})),last:g.last||null}));
   st.activities=(st.activities||[]).map(a=>({id:a.id||uid(),name:a.name||'',photo:a.photo||''}));
   return st;
 }
 const allActivities=()=>S.activities;
-const findGroup=id=>S.groups.find(g=>g.id===id);
+const findGroup=id=>{const g=S.groups.find(g=>g.id===id);if(g&&!g.preset)g.preset=DEF_PRESET();return g};
 const findAct=id=>allActivities().find(a=>a.id===id);
 
 /* ---------- Photos : recadrage carré, réduit ---------- */
@@ -470,6 +478,11 @@ function render(){
   if(sq&&tp)sq.addEventListener('scroll',()=>{if(sq.scrollTop>24)tp.classList.add('compact');else if(sq.scrollTop<4)tp.classList.remove('compact')},{passive:true});
 }
 
+/* ---------- Grille de sélection (une couleur par tour) ---------- */
+function kidGrid(g,st){const per=Math.max(1,st.per||1);
+  return `<div class="kids">${g.kids.map(k=>{const i=st.order.indexOf(k.id);const c=i>=0?TC[Math.floor(i/per)%TC.length]:'';
+    return `<button class="kid ${i>=0?'sel':'dim'}" data-a="pick" data-id="${k.id}" ${i>=0?`style="--sc:${c}"`:''}>${i>=0?`<span class="badge">${i+1}</span>`:''}<img src="${k.photo||AVATAR}" alt="">${k.name?`<b>${esc(k.name)}</b>`:''}</button>`}).join('')}</div>`}
+
 /* ---------- Écrans ---------- */
 const SCREENS={
 home(){
@@ -478,7 +491,7 @@ home(){
       <div class="stack">${g.kids.slice(0,4).map(k=>`<img src="${k.photo||AVATAR}" alt="">`).join('')}</div></button>`).join('')}</div>`
     :`<div class="empty">Aucun groupe pour l'instant.<br>Crée ton premier groupe d'enfants!</div>`;
   return `<header class="hero"><img src="img/logo.webp" alt=""><h1>À moi!</h1><p>Le tour de rôle, en images</p></header>
-  <h2>Mes groupes</h2>${S.groups.length?'<p class="hint">Touche un groupe pour lancer un tour de rôle rapide.</p>':''}${gl}
+  <h2>Mes groupes</h2>${S.groups.length?'<p class="hint">Touche un groupe pour choisir les enfants et lancer le tour.</p>':''}${gl}
   <div style="margin-top:12px"><button class="btn green block" data-a="newGroup">${ic('plus')} Nouveau groupe</button></div>
   <div class="tiles">
     <button class="tile" data-a="go" data-to="solo">${ic('hourglass')}<span>Minuteur seul</span></button>
@@ -492,22 +505,35 @@ group(){
   <p class="hint" style="margin-top:6px">Touche un enfant pour changer sa photo ou son prénom. Le prénom est optionnel.</p>
   <div class="kids">${g.kids.map(k=>`<button class="kid" data-a="editKid" data-id="${k.id}"><img src="${k.photo||AVATAR}" alt=""><b>${esc(k.name)||'&nbsp;'}</b></button>`).join('')}
     <button class="kid add" data-a="editKid">${ic('plus')}<b>Ajouter</b></button></div>
-  <div style="text-align:center;margin-top:18px"><button class="link danger" data-a="delGroup">Supprimer ce groupe</button></div>
-  <div class="foot"><div><button class="btn green" data-a="setup" ${g.kids.length?'':'disabled'}>${ic('sliders')} Personnaliser le tour de rôle</button></div></div>`;
+  <div style="text-align:center;margin-top:18px"><button class="link danger" data-a="delGroup">Supprimer ce groupe</button></div>`;
+},
+pick(){
+  const g=findGroup(V.id);if(!g)return SCREENS.home();const st=V.st;st.order=st.order.filter(id=>g.kids.some(k=>k.id===id));const n=st.order.length;
+  const P=g.preset;st.per=P.per;const act=P.act?findAct(P.act):null;
+  const sum=[TLAB[P.timer]+(P.timer!=='aucun'?' · '+durLabel(P.dur):''),`${P.per} enfant${P.per>1?'s':''} à la fois`,act?esc(act.name):''].filter(Boolean).join(' · ');
+  return `<div class="top"><button class="ibtn" data-a="back" aria-label="Retour">${ic('back')}</button><h1>${esc(g.name)}</h1><button class="ibtn" data-a="editGroup" aria-label="Modifier le groupe">${ic('gear')}</button></div>
+  <p class="hint" style="margin-top:6px">Touche les enfants dans l'ordre du tour, puis GO!</p>
+  ${kidGrid(g,st)}
+  <div class="row" style="margin-top:12px"><button class="btn small" data-a="pickAll">${ic('users')} Tout le groupe</button><button class="btn small" data-a="shuffle" ${n>1?'':'disabled'}>${ic('shuffle')} Mélanger</button><button class="btn small" data-a="pickNone" ${n?'':'disabled'}>Effacer</button></div>
+  <div class="card prog"><div><small>Tour de rôle programmé</small><b>${sum}</b></div></div>
+  <div style="text-align:center"><button class="btn soft" data-a="setup" style="margin-top:10px">${ic('sliders')} Programmer un tour de rôle</button></div>
+  <div class="foot"><div><button class="btn green go" data-a="startRun" ${n?'':'disabled'}>GO! ${ic('next')}</button></div></div>`;
 },
 setup(){
   const g=findGroup(V.id);if(!g)return SCREENS.home();const st=V.st;
-  st.order=st.order.filter(id=>g.kids.some(k=>k.id===id));
-  const n=st.order.length;st.per=Math.max(1,Math.min(st.per,8,n||1));
+  st.order=st.order.filter(id=>g.kids.some(k=>k.id===id));const n=st.order.length;
+  const maxP=S.settings.maxPer||3;st.per=Math.max(1,Math.min(st.per,8));
   const acts=allActivities();
   const kp=id=>{const k=g.kids.find(k=>k.id===id)||{};return `<img src="${k.photo||AVATAR}" alt="">`};
-  let prev='';if(n){const turns=[];for(let i=0;i<5;i++)turns.push(`<span class="pt">${turnOf(st,i).map(kp).join('')}</span>`);prev=`<div class="preview"><span>Ordre :</span>${turns.join('<i>→</i>')}<i>…</i></div>`}
-  return `<div class="top"><button class="ibtn" data-a="back" aria-label="Retour">${ic('back')}</button><h1>${esc(g.name)}</h1></div>
-  <h3><span class="num">1</span>Qui participe?</h3><p class="hint">Touche les photos dans l'ordre du tour.</p>
-  <div class="kids">${g.kids.map(k=>{const i=st.order.indexOf(k.id);return `<button class="kid ${i>=0?'sel':'dim'}" data-a="pick" data-id="${k.id}">${i>=0?`<span class="badge">${i+1}</span>`:''}<img src="${k.photo||AVATAR}" alt="">${k.name?`<b>${esc(k.name)}</b>`:''}</button>`}).join('')}</div>
+  let prev='';if(n){const turns=[];for(let i=0;i<5;i++)turns.push(`<span class="pt" style="--sc:${TC[i%TC.length]}">${turnOf(st,i).map(kp).join('')}</span>`);prev=`<div class="preview"><span>Ordre :</span>${turns.join('<i>→</i>')}<i>…</i></div>`}
+  const opts=[];for(let k=1;k<=Math.max(maxP,st.per);k++)opts.push(k);
+  return `<div class="top"><button class="ibtn" data-a="back" aria-label="Retour">${ic('back')}</button><h1>Programmer le tour</h1></div>
+  <p class="hint" style="margin-top:6px">Ces choix seront gardés pour les prochains tours de « ${esc(g.name)} ».</p>
+  <h3><span class="num">1</span>Combien d'enfants à la fois?</h3>
+  <div class="${opts.length>3?'durs':'seg'}">${opts.map(k=>`<button class="${st.per===k?'on':''}" data-a="per" data-v="${k}">${k}${opts.length>3?'':` enfant${k>1?'s':''}`}</button>`).join('')}</div>
+  <h3><span class="num">2</span>Qui participe?</h3><p class="hint">Touche les photos dans l'ordre du tour.${st.per>1?' Une couleur = un tour.':''}</p>
+  ${kidGrid(g,st)}
   <div class="row" style="margin-top:12px"><button class="btn small" data-a="pickAll">${ic('users')} Tout le groupe</button><button class="btn small" data-a="shuffle" ${n>1?'':'disabled'}>${ic('shuffle')} Mélanger</button><button class="btn small" data-a="pickNone" ${n?'':'disabled'}>Effacer</button></div>
-  <h3><span class="num">2</span>Combien d'enfants à la fois?</h3>
-  <div class="stepper"><button class="ibtn" data-a="per" data-v="-1" aria-label="Moins" ${st.per<=1?'disabled':''}>${ic('minus')}</button><span>${st.per} enfant${st.per>1?'s':''}</span><button class="ibtn" data-a="per" data-v="1" aria-label="Plus" ${st.per>=Math.min(8,n)?'disabled':''}>${ic('plus')}</button></div>
   ${prev}
   <div class="card switch" style="margin-top:12px;padding:12px 16px"><span>Afficher les prénoms</span><button class="tog ${S.settings.showNames?'on':''}" data-a="names" aria-label="Afficher les prénoms"></button></div>
   <h3><span class="num">3</span>Activité <small style="font-weight:600;color:var(--muted)">(optionnel)</small></h3>
@@ -518,7 +544,7 @@ setup(){
   <div class="seg">${[['sablier','Sablier'],['timetimer','Time Timer'],['aucun','Aucun']].map(([v,l])=>`<button class="${st.timer===v?'on':''}" data-a="tType" data-v="${v}">${l}</button>`).join('')}</div>
   ${st.timer!=='aucun'?`<p class="hint" style="margin-top:12px">Durée de chaque tour</p>${durPicker(st.dur,'dur')}`
     :`<p class="hint" style="margin-top:12px">Parfait si tu utilises ton propre sablier ou Time Timer.</p>`}
-  <div class="foot"><div><button class="btn green" data-a="startRun" ${n?'':'disabled'}>${ic('play')} C'est parti!</button></div></div>`;
+  <div class="foot"><div><button class="btn green go" data-a="startRun" ${n?'':'disabled'}>GO! ${ic('next')}</button></div></div>`;
 },
 run(){
   const g=findGroup(V.id);const R=V.run;if(!g)return SCREENS.home();
@@ -535,8 +561,7 @@ run(){
       ${act?`<div class="tcol">${act.photo?`<img class="actimg" style="--ah:${hasT?'min(24vw,120px)':'min(40vw,190px)'}" src="${act.photo}" alt="">`:''}<div class="actname ${act.photo?'':'big'}">${esc(act.name)}</div></div>`:''}
       ${hasT?timerBlock(R.timer,th):''}</div></div>`:'';
   return `<div class="top"><button class="ibtn" data-a="back" aria-label="Quitter">${ic('back')}</button><h1>${esc(g.name)}</h1>
-    ${hasT?`<button class="ibtn ${S.settings.sound?'':'off'}" data-a="sound" aria-label="Son">${ic(S.settings.sound?'bell':'belloff')}</button>`:''}
-    <button class="ibtn" data-a="custom" aria-label="Personnaliser">${ic('sliders')}</button></div>
+    ${hasT?`<button class="ibtn ${S.settings.sound?'':'off'}" data-a="sound" aria-label="Son">${ic(S.settings.sound?'bell':'belloff')}</button>`:''}</div>
   ${topArea}<div class="seq">${seq}</div>
   <div class="run-foot"><button class="ibtn" data-a="prevTurn" aria-label="Tour précédent" ${R.turn?'':'disabled style="opacity:.4"'}>${ic('prev')}</button><button class="btn green next" data-a="nextTurn">Suivant ${ic('next')}</button></div>`;
 },
@@ -563,7 +588,8 @@ settings(){
     <button class="opt ${s.ttFace==='classique'?'on':''}" data-a="face" data-v="classique"><div class="mini">${ttSVG('classique',0,true)}</div><div><b>Cadran classique (60 min)</b><small>Comme l'objet, dans le sens d'une horloge. Un tour de 2 minutes fait une petite pointe rouge.</small></div></button>
     <button class="opt ${s.ttFace==='plein'?'on':''}" data-a="face" data-v="plein" style="margin-bottom:0"><div class="mini">${ttSVG('plein',240,true)}</div><div><b>Disque ajusté à la durée</b><small>Le cercle rouge est plein au début, peu importe la durée.</small></div></button>
   </div>
-  <h2>Tour de rôle</h2><div class="card"><div class="switch"><span>Afficher les prénoms sous les photos</span><button class="tog ${s.showNames?'on':''}" data-a="names" aria-label="Afficher les prénoms"></button></div></div>
+  <h2>Tour de rôle</h2><div class="card"><p style="margin-bottom:8px">Choix d'enfants à la fois</p>
+    <div class="seg" style="margin-bottom:14px">${[[3,'1 à 3'],[8,'1 à 8']].map(([v,l])=>`<button class="${(s.maxPer||3)===v?'on':''}" data-a="maxPer" data-v="${v}">${l}</button>`).join('')}</div><div class="switch"><span>Afficher les prénoms sous les photos</span><button class="tog ${s.showNames?'on':''}" data-a="names" aria-label="Afficher les prénoms"></button></div></div>
   <h2>Son</h2><div class="card"><div class="switch"><span>Bip-bip-bip à la fin du temps</span><button class="tog ${s.sound?'on':''}" data-a="sound" aria-label="Son"></button></div></div>
   <h2>Sauvegarde</h2><div class="card"><p>Les photos et les groupes restent seulement sur cet appareil. Exporte une sauvegarde pour les garder ou les transférer sur un autre appareil.</p>
     <div class="mact"><button class="btn green" data-a="export">${ic('down')} Exporter une sauvegarde</button>
@@ -606,12 +632,9 @@ T.onDone=showDone;
 const A={
   go:el=>{if(el.dataset.to==='solo'){T.reset(S.settings.soloDur)}go(el.dataset.to)},
   back:()=>{if(V.name==='run'||V.name==='solo')T.reset();back()},
-  newGroup:()=>promptName('Nouveau groupe','',name=>{const g={id:uid(),name,color:COLORS[S.groups.length%COLORS.length],kids:[],last:null};S.groups.push(g);save();go('group',{id:g.id})}),
-  openGroup:el=>{const g=findGroup(el.dataset.id);if(!g.kids.length){go('group',{id:g.id});return}
-    const run={order:g.kids.map(k=>k.id),per:1,act:'',timer:'sablier',dur:60,turn:0};T.reset(60);go('run',{id:g.id,run});T.play()},
-  custom:()=>openModal(`<h2>Personnaliser</h2><div class="mact"><button class="btn green" data-a="goSetup">${ic('sliders')} Personnaliser le tour de rôle</button><button class="btn blue" data-a="goGroup">${ic('users')} Personnaliser le groupe</button><button class="btn soft" data-a="mClose">Fermer</button></div>`),
-  goSetup:()=>{closeModal();const R=V.run;T.reset();go('setup',{id:V.id,st:{order:[...R.order],per:R.per,act:R.act,timer:R.timer,dur:R.dur}},true)},
-  goGroup:()=>{closeModal();T.reset();go('group',{id:V.id},true)},
+  newGroup:()=>promptName('Nouveau groupe','',name=>{const g={id:uid(),name,color:COLORS[S.groups.length%COLORS.length],kids:[],preset:DEF_PRESET()};S.groups.push(g);save();go('group',{id:g.id})}),
+  openGroup:el=>{const g=findGroup(el.dataset.id);if(!g.kids.length){go('group',{id:g.id});return}go('pick',{id:g.id,st:{order:[],...g.preset}})},
+  editGroup:()=>go('group',{id:V.id}),
   names:()=>{S.settings.showNames=!S.settings.showNames;save();rerender()},
   tAdd:()=>{T.addTime(60);refreshTT();toast('+1 minute')},
   dStep:el=>MCTX.step(el.dataset.k,+el.dataset.v),
@@ -620,18 +643,21 @@ const A={
   delGroup:()=>{const g=findGroup(V.id);ask('Supprimer le groupe?',`« ${esc(g.name)} » et ses ${g.kids.length} enfant(s) seront retirés de cet appareil.`,'Supprimer',()=>{S.groups=S.groups.filter(x=>x!==g);save();back()},true)},
   editKid:el=>{const g=findGroup(V.id);photoEditor('kid',el.dataset.id?g.kids.find(k=>k.id===el.dataset.id):null)},
   editAct:el=>photoEditor('act',el.dataset.id?findAct(el.dataset.id):null),
-  setup:()=>{const g=findGroup(V.id);const L=g.last||{};go('setup',{id:g.id,st:{order:(L.order||[]).filter(id=>g.kids.some(k=>k.id===id)),per:L.per||1,act:L.act&&findAct(L.act)?L.act:'',timer:L.timer||'sablier',dur:L.dur||120}})},
+  setup:()=>{const g=findGroup(V.id);go('setup',{id:g.id,st:{...g.preset,act:g.preset.act&&findAct(g.preset.act)?g.preset.act:'',order:[...V.st.order]}})},
   pick:el=>{const o=V.st.order,id=el.dataset.id,i=o.indexOf(id);i>=0?o.splice(i,1):o.push(id);rerender()},
   pickAll:()=>{const g=findGroup(V.id);const o=V.st.order;g.kids.forEach(k=>{if(!o.includes(k.id))o.push(k.id)});rerender()},
   pickNone:()=>{V.st.order=[];rerender()},
   shuffle:()=>{const o=V.st.order;for(let i=o.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[o[i],o[j]]=[o[j],o[i]]}rerender()},
-  per:el=>{V.st.per=Math.max(1,Math.min(8,V.st.per+(+el.dataset.v)));rerender()},
+  per:el=>{V.st.per=+el.dataset.v;rerender()},
+  maxPer:el=>{S.settings.maxPer=+el.dataset.v;save();render()},
   act:el=>{V.st.act=el.dataset.id;rerender()},
   tType:el=>{V.st.timer=el.dataset.v;rerender()},
   dur:el=>{if(el.dataset.v==='custom'){durModal(V.st.dur,t=>{V.st.dur=t;rerender()});return}V.st.dur=+el.dataset.v;rerender()},
-  startRun:()=>{const g=findGroup(V.id);const st=V.st;g.last={...st,order:[...st.order]};save();
-    const run={order:[...st.order],per:st.per,act:st.act,timer:st.timer,dur:st.dur,turn:0};
-    T.reset(st.dur);go('run',{id:g.id,run},true);if(run.timer!=='aucun')T.play()},
+  startRun:()=>{const g=findGroup(V.id);const st=V.st;const fromSetup=V.name==='setup';
+    if(fromSetup){g.preset={per:st.per,act:st.act,timer:st.timer,dur:st.dur};save()}
+    const P=fromSetup?st:g.preset;const act=P.act&&findAct(P.act)?P.act:'';
+    const run={order:[...st.order],per:P.per,act,timer:P.timer,dur:P.dur,turn:0};
+    T.reset(run.dur);go('run',{id:g.id,run},fromSetup);if(run.timer!=='aucun')T.play()},
   nextTurn:()=>{V.run.turn++;history.replaceState(V,'');if(V.run.timer!=='aucun'){T.reset(V.run.dur)}render();if(V.run.timer!=='aucun')T.play()},
   prevTurn:()=>{if(!V.run.turn)return;V.run.turn--;history.replaceState(V,'');if(V.run.timer!=='aucun'){T.reset(V.run.dur)}render();if(V.run.timer!=='aucun')T.play()},
   doneNext:()=>{closeModal();A.nextTurn()},
