@@ -173,10 +173,11 @@ svg.i{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2.2;stro
 .turn .wrap{flex:1;min-width:0}
 .turn .ppl{display:flex;gap:10px;flex-wrap:wrap;min-width:0}
 .turn .p{display:flex;align-items:center;gap:12px;min-width:0}
-.turn img{width:74px;height:74px;border-radius:50%;object-fit:cover;background:#f6efe6;flex:none}
-.turn.many img,.turn.lots img,.turn.two img{width:58px;height:58px}
+.turn img{width:clamp(88px,26vw,110px);height:clamp(88px,26vw,110px);border-radius:50%;object-fit:cover;background:#f6efe6;flex:none}
+.turn.two img{width:clamp(78px,22vw,96px);height:clamp(78px,22vw,96px)}
+.turn.many img,.turn.lots img{width:clamp(62px,17vw,76px);height:clamp(62px,17vw,76px)}
 .turn.many .p,.turn.lots .p,.turn.two .p{flex-direction:column;gap:2px}
-.turn b{font-size:20px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.turn b{font-size:22px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .turn.two b,.turn.many b,.turn.lots b{font-size:15px}
 .turn .n{color:#c2ae9b;font-weight:800;font-size:15px;width:20px;text-align:center;flex:none}
 .turn.now{opacity:1;padding:14px 10px;border:4px solid var(--green);background:#f7fbf0}
@@ -213,7 +214,13 @@ svg.i{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2.2;stro
 .preview .pt img{width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid #fff;margin-left:-8px;background:#f6efe6}
 .preview .pt img:first-child{margin-left:0}
 .preview i{font-style:normal;color:var(--muted)}
-.next-kids.sm img{width:80px;height:80px}
+.next-kids.n2 img{width:min(36vw,150px);height:min(36vw,150px)}
+.next-kids.n3 img{width:min(24vw,100px);height:min(24vw,100px)}
+.next-kids div{font-size:26px}
+.done-img.sm{max-width:150px;margin-top:-4px}
+.endcard{background:#fff;border-radius:var(--r);box-shadow:var(--shadow);padding:20px;text-align:center;border:4px solid var(--green)}
+.endcard img{width:min(60vw,240px)}
+.endcard h2{margin:6px 0 14px}
 .run-foot{flex:none;display:flex;gap:10px;padding-top:8px}
 .run-foot .btn.next{flex:1;font-size:22px;padding:18px}
 .run-foot .ibtn{width:62px;height:62px}
@@ -249,7 +256,7 @@ svg.i{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2.2;stro
 .done-img{width:100%;max-width:330px;display:block;margin:0 auto 6px}
 .next-kids{display:flex;justify-content:center;gap:14px;margin:6px 0 16px;flex-wrap:wrap}
 .next-kids div{display:flex;flex-direction:column;align-items:center;font-weight:800;font-size:20px}
-.next-kids img{width:130px;height:130px;border-radius:50%;object-fit:cover;border:4px solid var(--green);background:#f6efe6}
+.next-kids img{width:min(60vw,240px);height:min(60vw,240px);border-radius:50%;object-fit:cover;border:4px solid var(--green);background:#f6efe6}
 .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 100px);transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:14px;font-weight:700;z-index:60;box-shadow:var(--shadow);max-width:90vw;text-align:center;animation:pop .2s}
 .solo-timer{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;min-height:0}
 </style>
@@ -304,7 +311,7 @@ function toast(msg){const t=document.createElement('div');t.className='toast';t.
 
 
 /* ---------- Stockage (sur l'appareil seulement) ---------- */
-const DEFAULT_STATE=()=>({v:1,groups:[],activities:[],settings:{ttFace:'classique',sound:true,showNames:true,maxPer:3,soloType:'sablier',soloDur:120}});
+const DEFAULT_STATE=()=>({v:1,groups:[],activities:[],settings:{ttFace:'classique',sound:true,showNames:true,maxPer:3,shuffle:false,soloType:'sablier',soloDur:120}});
 let S=DEFAULT_STATE();
 const DB={db:null,
   open(){return new Promise((res,rej)=>{try{const r=indexedDB.open('a-moi',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>{this.db=r.result;res()};r.onerror=()=>rej(r.error)}catch(e){rej(e)}})},
@@ -340,10 +347,12 @@ let AC=null;
 function audio(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state==='suspended')AC.resume();return AC}
 document.addEventListener('pointerdown',audio,{passive:true});
 function beep(){
-  const ac=audio();if(navigator.vibrate)try{navigator.vibrate([200,120,200,120,200])}catch(e){}
+  const ac=audio();if(navigator.vibrate)try{navigator.vibrate([250,120,250,120,250,400,250,120,250,120,250])}catch(e){}
   if(!ac)return;const t0=ac.currentTime+0.05;
-  for(let r=0;r<2;r++)for(let i=0;i<3;i++){const t=t0+r*1.25+i*0.3;const o=ac.createOscillator(),g=ac.createGain();o.type='sine';o.frequency.value=1046;
-    g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.6,t+0.02);g.gain.exponentialRampToValueAtTime(0.0001,t+0.2);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+0.22)}
+  for(let r=0;r<3;r++)for(let i=0;i<3;i++){const t=t0+r*0.95+i*0.2;
+    [2900,3050].forEach(f=>{const o=ac.createOscillator(),g=ac.createGain();o.type='square';o.frequency.value=f;
+      g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.32,t+0.008);g.gain.setValueAtTime(0.32,t+0.11);g.gain.exponentialRampToValueAtTime(0.0001,t+0.13);
+      o.connect(g).connect(ac.destination);o.start(t);o.stop(t+0.14)})}
 }
 
 /* ---------- Écran allumé pendant le minuteur ---------- */
@@ -533,7 +542,6 @@ pick(){
   return `<div class="top"><button class="ibtn" data-a="back" aria-label="Retour">${ic('back')}</button><h1>${esc(g.name)}</h1><button class="ibtn" data-a="editGroup" aria-label="Modifier le groupe">${ic('gear')}</button></div>
   <p class="hint" style="margin-top:6px">Touche les enfants dans l'ordre du tour, puis GO!</p>
   ${kidGrid(g,st)}
-  <div class="row" style="margin-top:12px"><button class="btn small" data-a="pickAll">${ic('users')} Tout le groupe</button><button class="btn small" data-a="shuffle" ${n>1?'':'disabled'}>${ic('shuffle')} Mélanger</button><button class="btn small" data-a="pickNone" ${n?'':'disabled'}>Effacer</button></div>
   <div style="height:80px"></div>
   <div class="foot"><div class="fcol">
     <button class="psum" data-a="setup" aria-label="Programmation">${progIcons(P,act)}</button>
@@ -554,9 +562,8 @@ setup(){
   <div class="${opts.length>3?'durs':'seg'}">${opts.map(k=>`<button class="${st.per===k?'on':''}" data-a="per" data-v="${k}">${k}${opts.length>3?'':` enfant${k>1?'s':''}`}</button>`).join('')}</div>
   <h3><span class="num">2</span>Qui participe?</h3><p class="hint">Touche les photos dans l'ordre du tour.${st.per>1?' Une couleur = un tour.':''}</p>
   ${kidGrid(g,st)}
-  <div class="row" style="margin-top:12px"><button class="btn small" data-a="pickAll">${ic('users')} Tout le groupe</button><button class="btn small" data-a="shuffle" ${n>1?'':'disabled'}>${ic('shuffle')} Mélanger</button><button class="btn small" data-a="pickNone" ${n?'':'disabled'}>Effacer</button></div>
+  <div class="row" style="margin-top:12px"><button class="btn small" data-a="pickAll">${ic('users')} Tout le groupe</button><button class="btn small" data-a="pickNone" ${n?'':'disabled'}>Effacer</button></div>
   ${prev}
-  <div class="card switch" style="margin-top:12px;padding:12px 16px"><span>Afficher les prénoms</span><button class="tog ${S.settings.showNames?'on':''}" data-a="names" aria-label="Afficher les prénoms"></button></div>
   <h3><span class="num">3</span>Activité <small style="font-weight:600;color:var(--muted)">(optionnel)</small></h3>
   <div class="chips"><button class="chip ${!st.act?'on':''}" data-a="act" data-id=""><span style="height:64px;display:grid;place-items:center;font-size:15px">Aucune</span></button>
     ${acts.map(a=>`<button class="chip ${st.act===a.id?'on':''}" data-a="act" data-id="${a.id}">${a.photo?`<img src="${a.photo}" alt="">`:`<span style="height:64px;display:grid;place-items:center;font-size:15px">${esc(a.name)}</span>`}<span>${a.photo?esc(a.name):'&nbsp;'}</span></button>`).join('')}
@@ -574,18 +581,21 @@ run(){
   const kid=id=>g.kids.find(k=>k.id===id)||{name:'',photo:''};
   const kname=k=>names&&k.name?`<b>${esc(k.name)}</b>`:'';
   let seq='';
-  for(let i=R.turn;i<R.turn+7;i++){
-    const ks=turnOf(R,i).map(kid);const now=i===R.turn;const sz=ks.length>4?'lots':ks.length>2?'many':ks.length>1?'two':'one';
-    seq+=`<div class="turn ${now?'now':''} ${sz}" data-a="who">${now?'':`<span class="n">${i-R.turn}</span>`}<div class="wrap">${now?'<span class="nowlbl">C\'est ton tour!</span>':''}<div class="ppl">${ks.map(k=>`<div class="p"><img src="${k.photo||AVATAR}" alt="">${kname(k)}</div>`).join('')}</div></div></div>`;
+  if(finished(R)){
+    seq=`<div class="endcard"><img src="img/bravo.webp" alt=""><h2>Tout le monde a eu son tour!</h2><div class="mact"><button class="btn green" data-a="restartSeq">${ic('restart')} Recommencer le tour de rôle</button></div></div>`;
+  }else for(let rel=0;rel<7;rel++){
+    const start=R.pos+rel*R.per;if(!R.repeat&&start>=R.order.length)break;
+    const ks=turnAt(R,start,R.repeat).map(kid);const now=rel===0;const sz=ks.length>4?'lots':ks.length>2?'many':ks.length>1?'two':'one';
+    seq+=`<div class="turn ${now?'now':''} ${sz}" data-a="who">${now?'':`<span class="n">${rel}</span>`}<div class="wrap">${now?'<span class="nowlbl">C\'est ton tour!</span>':''}<div class="ppl">${ks.map(k=>`<div class="p"><img src="${k.photo||AVATAR}" alt="">${kname(k)}</div>`).join('')}</div></div></div>`;
   }
-  const topArea=(act||hasT)?`<div class="run-top"><div class="tarea">
+  const topArea=(act||hasT)&&!finished(R)?`<div class="run-top"><div class="tarea">
       ${act?`<div class="tcol">${act.photo?`<img class="actimg" style="--ah:${hasT?'min(24vw,120px)':'min(40vw,190px)'}" src="${act.photo}" alt="">`:''}<div class="actname ${act.photo?'':'big'}">${esc(act.name)}</div></div>`:''}
       ${hasT?timerBlock(R.timer,th):''}</div></div>`:'';
   return `<div class="top"><button class="ibtn" data-a="back" aria-label="Quitter">${ic('back')}</button><h1>${esc(g.name)}</h1>
     ${hasT?`<button class="ibtn ${S.settings.sound?'':'off'}" data-a="sound" aria-label="Son">${ic(S.settings.sound?'bell':'belloff')}</button>`:''}
     <button class="ibtn" data-a="runEdit" aria-label="Modifier le tour">${ic('sliders')}</button></div>
   ${topArea}<div class="seq">${seq}</div>
-  <div class="run-foot"><button class="ibtn" data-a="prevTurn" aria-label="Tour précédent" ${R.turn?'':'disabled style="opacity:.4"'}>${ic('prev')}</button><button class="ibtn plus" data-a="who" aria-label="Ajouter ou retirer un enfant">${ic('plus')}</button><button class="btn green next" data-a="nextTurn">Suivant ${ic('next')}</button></div>`;
+  <div class="run-foot"><button class="ibtn" data-a="prevTurn" aria-label="Tour précédent" ${R.pos>0?'':'disabled style="opacity:.4"'}>${ic('prev')}</button><button class="ibtn plus" data-a="who" aria-label="Ajouter ou retirer un enfant">${ic('plus')}</button><button class="btn green next" data-a="nextTurn" ${finished(R)?'disabled':''}>Suivant ${ic('next')}</button></div>`;
 },
 solo(){
   const s=S.settings;
@@ -611,7 +621,8 @@ settings(){
     <button class="opt ${s.ttFace==='plein'?'on':''}" data-a="face" data-v="plein" style="margin-bottom:0"><div class="mini">${ttSVG('plein',240,true)}</div><div><b>Disque ajusté à la durée</b><small>Le cercle rouge est plein au début, peu importe la durée.</small></div></button>
   </div>
   <h2>Tour de rôle</h2><div class="card"><p style="margin-bottom:8px">Choix d'enfants à la fois</p>
-    <div class="seg" style="margin-bottom:14px">${[[3,'1 à 3'],[8,'1 à 8']].map(([v,l])=>`<button class="${(s.maxPer||3)===v?'on':''}" data-a="maxPer" data-v="${v}">${l}</button>`).join('')}</div><div class="switch"><span>Afficher les prénoms sous les photos</span><button class="tog ${s.showNames?'on':''}" data-a="names" aria-label="Afficher les prénoms"></button></div></div>
+    <div class="seg" style="margin-bottom:14px">${[[3,'1 à 3'],[8,'1 à 8']].map(([v,l])=>`<button class="${(s.maxPer||3)===v?'on':''}" data-a="maxPer" data-v="${v}">${l}</button>`).join('')}</div><div class="switch"><span>Afficher les prénoms sous les photos</span><button class="tog ${s.showNames?'on':''}" data-a="names" aria-label="Afficher les prénoms"></button></div>
+    <div class="switch" style="margin-top:14px"><span>Mélanger l'ordre des enfants au GO</span><button class="tog ${s.shuffle?'on':''}" data-a="shuffleSet" aria-label="Mélanger"></button></div></div>
   <h2>Son</h2><div class="card"><div class="switch"><span>Bip-bip-bip à la fin du temps</span><button class="tog ${s.sound?'on':''}" data-a="sound" aria-label="Son"></button></div></div>
   <h2>Sauvegarde</h2><div class="card"><p>Les photos et les groupes restent seulement sur cet appareil. Exporte une sauvegarde pour les garder ou les transférer sur un autre appareil.</p>
     <div class="mact"><button class="btn green" data-a="export">${ic('down')} Exporter une sauvegarde</button>
@@ -621,14 +632,17 @@ settings(){
 };
 
 /* ---------- Séquence ---------- */
-function turnOf(r,i){const n=r.order.length;if(!n)return[];const k=Math.min(r.per||1,n);const out=[];for(let j=0;j<k;j++)out.push(r.order[(i*k+j)%n]);return out}
+function turnOf(r,i){return turnAt(r,i*(r.per||1),true)}
+function turnAt(r,start,rep){const n=r.order.length;if(!n)return[];const k=Math.min(r.per||1,n);const out=[];
+  for(let j=0;j<k;j++){const x=start+j;if(!rep&&x>=n)break;out.push(r.order[x%n])}return out}
+const finished=R=>!R.repeat&&R.pos>=R.order.length;
 
 /* ---------- Modifier en plein tour ---------- */
-function rebase(R){const n=R.order.length;if(!n)return;const st=(R.turn*R.per)%n;R.order=[...R.order.slice(st),...R.order.slice(0,st)];R.turn=0}
 function whoModal(){
   const g=findGroup(V.id),R=V.run;
   openModal(`<h2>Qui joue?</h2><p>Touche une photo pour ajouter ou retirer un enfant du tour.</p>
     <div class="kids who">${g.kids.map(k=>{const on=R.order.includes(k.id);return `<button class="kid ${on?'sel':'dim'}" data-a="whoToggle" data-id="${k.id}">${on?`<span class="badge">${ic('check')}</span>`:`<span class="badge add">${ic('plus')}</span>`}<img src="${k.photo||AVATAR}" alt="">${k.name?`<b>${esc(k.name)}</b>`:''}</button>`}).join('')}</div>
+    <div class="card switch" style="margin-top:14px;padding:12px 14px"><span>Recommencer au début quand tout le monde a joué<br><small style="color:var(--muted);font-weight:600">(1, 2, 3, 1, 2, 3…)</small></span><button class="tog ${R.repeat?'on':''}" data-a="repeat" aria-label="Répéter"></button></div>
     <div class="mact" style="margin-top:14px"><button class="btn green" data-a="mClose">OK</button></div>`);
 }
 function runEditModal(){
@@ -660,8 +674,12 @@ function photoEditor(kind,item){
 }
 function showDone(){
   if(V.name==='run'){
-    const g=findGroup(V.id),R=V.run;const ks=turnOf(R,R.turn+1).map(id=>g.kids.find(k=>k.id===id)).filter(Boolean);
-    openModal(`<img class="done-img" src="img/bravo.webp" alt=""><h2>Au tour de…</h2><div class="next-kids ${ks.length>2?'sm':''}">${ks.map(k=>`<div><img src="${k.photo||AVATAR}" alt="">${S.settings.showNames?esc(k.name):''}</div>`).join('')}</div>
+    const g=findGroup(V.id),R=V.run;const nstart=R.pos+R.per;
+    if(!R.repeat&&nstart>=R.order.length){
+      openModal(`<img class="done-img sm" src="img/bravo.webp" alt=""><h2>Tout le monde a eu son tour!</h2><div class="mact"><button class="btn green" data-a="doneRestartSeq">${ic('restart')} Recommencer le tour de rôle</button><button class="btn soft" data-a="doneEnd">Terminé</button></div>`);return}
+    const ks=turnAt(R,nstart,R.repeat).map(id=>g.kids.find(k=>k.id===id)).filter(Boolean);
+    openModal(`<h2 style="margin-bottom:8px">À ton tour!</h2><div class="next-kids n${Math.min(ks.length,3)}">${ks.map(k=>`<div><img src="${k.photo||AVATAR}" alt="">${S.settings.showNames?esc(k.name):''}</div>`).join('')}</div>
+      <img class="done-img sm" src="img/bravo.webp" alt="">
       <div class="mact"><button class="btn green" data-a="doneNext">C'est parti! ${ic('next')}</button><button class="btn soft" data-a="mClose">Fermer</button></div>`);
   }else if(V.name==='solo'){
     openModal(`<img class="done-img" src="img/bravo.webp" alt=""><h2>Temps écoulé!</h2><div class="mact"><button class="btn green" data-a="doneRestart">${ic('restart')} Recommencer</button><button class="btn soft" data-a="mClose">Fermer</button></div>`);
@@ -677,11 +695,17 @@ const A={
   openGroup:el=>{const g=findGroup(el.dataset.id);if(!g.kids.length){go('group',{id:g.id});return}go('pick',{id:g.id,st:{order:[],...g.preset}})},
   editGroup:()=>go('group',{id:V.id}),
   who:()=>whoModal(),
-  whoToggle:el=>{const R=V.run,id=el.dataset.id;rebase(R);const i=R.order.indexOf(id);
-    if(i>=0){if(R.order.length<=1){toast('Il faut au moins un enfant.');return}R.order.splice(i,1)}else R.order.push(id);
+  whoToggle:el=>{const R=V.run,id=el.dataset.id;const n=R.order.length;if(R.repeat&&n)R.pos=R.pos%n;const i=R.order.indexOf(id);
+    if(i>=0){if(n<=1){toast('Il faut au moins un enfant.');return}R.order.splice(i,1);if(i<R.pos)R.pos--;if(R.repeat&&R.pos>=R.order.length)R.pos=0}
+    else{const was=finished(R);R.order.push(id);if(was){R.pos=R.order.length-1;if(R.timer!=='aucun'){T.reset(R.dur);T.play()}}}
     history.replaceState(V,'');render();whoModal()},
+  repeat:()=>{const R=V.run;R.repeat=!R.repeat;if(!R.repeat&&R.order.length)R.pos=R.pos%R.order.length;history.replaceState(V,'');render();whoModal()},
+  restartSeq:()=>{const R=V.run;R.pos=0;history.replaceState(V,'');T.reset(R.dur);render();if(R.timer!=='aucun')T.play()},
+  doneRestartSeq:()=>{closeModal();A.restartSeq()},
+  doneEnd:()=>{closeModal();A.nextTurn()},
+  shuffleSet:()=>{S.settings.shuffle=!S.settings.shuffle;save();render()},
   runEdit:()=>runEditModal(),
-  rPer:el=>{const R=V.run;rebase(R);R.per=+el.dataset.v;applyRun(false);runEditModal()},
+  rPer:el=>{const R=V.run;R.per=+el.dataset.v;applyRun(false);runEditModal()},
   rType:el=>{V.run.timer=el.dataset.v;applyRun(true);runEditModal()},
   rDur:el=>{const set=t=>{V.run.dur=t;applyRun(true)};if(el.dataset.v==='custom'){durModal(V.run.dur,t=>{set(t)});return}set(+el.dataset.v);runEditModal()},
   names:()=>{S.settings.showNames=!S.settings.showNames;save();rerender()},
@@ -705,10 +729,11 @@ const A={
   startRun:()=>{const g=findGroup(V.id);const st=V.st;const fromSetup=V.name==='setup';
     if(fromSetup){g.preset={per:st.per,act:st.act,timer:st.timer,dur:st.dur};save()}
     const P=fromSetup?st:g.preset;const act=P.act&&findAct(P.act)?P.act:'';
-    const run={order:[...st.order],per:P.per,act,timer:P.timer,dur:P.dur,turn:0};
+    const order=[...st.order];if(S.settings.shuffle)for(let i=order.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[order[i],order[j]]=[order[j],order[i]]}
+    const run={order,per:P.per,act,timer:P.timer,dur:P.dur,pos:0,repeat:order.length<=2};
     T.reset(run.dur);go('run',{id:g.id,run},fromSetup);if(run.timer!=='aucun')T.play()},
-  nextTurn:()=>{V.run.turn++;history.replaceState(V,'');if(V.run.timer!=='aucun'){T.reset(V.run.dur)}render();if(V.run.timer!=='aucun')T.play()},
-  prevTurn:()=>{if(!V.run.turn)return;V.run.turn--;history.replaceState(V,'');if(V.run.timer!=='aucun'){T.reset(V.run.dur)}render();if(V.run.timer!=='aucun')T.play()},
+  nextTurn:()=>{const R=V.run;if(finished(R))return;R.pos+=R.per;history.replaceState(V,'');T.reset(R.dur);render();if(R.timer!=='aucun'&&!finished(R))T.play()},
+  prevTurn:()=>{const R=V.run;if(R.pos<=0)return;R.pos=Math.max(0,R.pos-R.per);history.replaceState(V,'');T.reset(R.dur);render();if(R.timer!=='aucun')T.play()},
   doneNext:()=>{closeModal();A.nextTurn()},
   doneRestart:()=>{closeModal();T.restart()},
   tPlay:()=>{audio();T.running?T.pause():T.play()},
