@@ -1,5 +1,5 @@
 // À moi! : fonctionne hors ligne. Change VERSION à chaque mise à jour.
-const VERSION = 'a-moi-v1';
+const VERSION = 'a-moi-v3';
 const FILES = [
   './', 'index.html', 'manifest.webmanifest',
   'img/logo.webp', 'img/sablier.webp', 'img/bravo.webp', 'img/avatar.webp',
