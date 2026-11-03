@@ -1,6 +1,6 @@
 // À moi! : fonctionne hors ligne et se met à jour toute seule.
 // Change VERSION à chaque mise à jour (et APP_VERSION dans index.html).
-const VERSION = 'a-moi-v7';
+const VERSION = 'a-moi-v8';
 const FILES = [
   './', 'index.html', 'manifest.webmanifest',
   'img/logo.webp', 'img/sablier.webp', 'img/bravo.webp', 'img/avatar.webp',

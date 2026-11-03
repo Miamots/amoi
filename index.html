@@ -790,7 +790,7 @@ async function doImport(file){
 }
 
 /* ---------- Mises à jour automatiques ---------- */
-const APP_VERSION=7;
+const APP_VERSION=8;
 let swReg=null,pendingReload=false;
 function safeToReload(){return !(V.name==='run'||V.name==='solo')&&!$('#modal').classList.contains('show')}
 function doReload(){if(safeToReload())location.reload();else pendingReload=true}
